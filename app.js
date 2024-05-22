@@ -14,7 +14,7 @@ const LocalStrategy = require("passport-local");
 const path = require("path");
 const User = require("./models/user");
 const helmet = require("helmet");
-const MongoStore = require("connect-mongo");
+const MongoStore = require("connect-mongo")(session);
 
 const userRoutes = require("./routes/users");
 const campgroundRoutes = require("./routes/campgrounds");
@@ -23,7 +23,13 @@ const reviewRoutes = require("./routes/reviews");
 const ExpressError = require("./utils/ExpressError");
 
 const dbUrl = process.env.DB_UR || "mongodb://localhost:27017/mi-camp";
-mongoose.connect(dbUrl);
+mongoose.connect(dbUrl, {
+  useNewUrlParser: true,
+  useCreateIndex: true,
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+});
+
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", () => {
