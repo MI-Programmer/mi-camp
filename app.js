@@ -3,26 +3,26 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const express = require("express");
-const methodOverride = require("method-override");
+const path = require("path");
 const mongoose = require("mongoose");
-const mongoSanitize = require("express-mongo-sanitize");
 const ejsMate = require("ejs-mate");
 const session = require("express-session");
 const flash = require("connect-flash");
+const ExpressError = require("./utils/ExpressError");
+const methodOverride = require("method-override");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
-const path = require("path");
 const User = require("./models/user");
 const helmet = require("helmet");
-const MongoStore = require("connect-mongo")(session);
-
+const mongoSanitize = require("express-mongo-sanitize");
 const userRoutes = require("./routes/users");
 const campgroundRoutes = require("./routes/campgrounds");
 const reviewRoutes = require("./routes/reviews");
 
-const ExpressError = require("./utils/ExpressError");
+const MongoDBStore = require("connect-mongo")(session);
 
-const dbUrl = process.env.DB_URL || "mongodb://localhost:27017/mi-camp";
+const dbUrl = process.env.DB_URL || "mongodb://localhost:27017/yelp-camp";
+
 mongoose.connect(dbUrl, {
   useNewUrlParser: true,
   useCreateIndex: true,
@@ -50,11 +50,10 @@ app.use(
     replaceWith: "_",
   })
 );
+const secret = process.env.SECRET || "thisshouldbeabettersecret!";
 
-const secret = process.env.SECRET || "thisissecretwhooo";
-
-const store = new MongoStore({
-  mongoUrl: dbUrl,
+const store = new MongoDBStore({
+  url: dbUrl,
   secret,
   touchAfter: 24 * 60 * 60,
 });
@@ -70,44 +69,39 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: true,
   cookie: {
-    secure: true,
     httpOnly: true,
+    // secure: true,
     expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
     maxAge: 1000 * 60 * 60 * 24 * 7,
   },
 };
+
 app.use(session(sessionConfig));
 app.use(flash());
 app.use(helmet());
 
 const scriptSrcUrls = [
-  "https://stackpath.bootstrapcdn.com/",
-  "https://api.tiles.mapbox.com/",
-  "https://api.mapbox.com/",
-  "https://kit.fontawesome.com/",
-  "https://cdnjs.cloudflare.com/",
+  "https://stackpath.bootstrapcdn.com",
+  "https://api.tiles.mapbox.com",
+  "https://api.mapbox.com",
+  "https://kit.fontawesome.com",
+  "https://cdnjs.cloudflare.com",
   "https://cdn.jsdelivr.net",
 ];
-
 const styleSrcUrls = [
-  "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
-  "https://kit-free.fontawesome.com/",
-  "https://stackpath.bootstrapcdn.com/",
-  "https://api.mapbox.com/",
-  "https://api.tiles.mapbox.com/",
-  "https://fonts.googleapis.com/",
-  "https://use.fontawesome.com/",
+  "https://kit-free.fontawesome.com",
+  "https://stackpath.bootstrapcdn.com",
+  "https://api.mapbox.com",
+  "https://api.tiles.mapbox.com",
+  "https://fonts.googleapis.com",
+  "https://use.fontawesome.com",
 ];
-
 const connectSrcUrls = [
-  "https://api.mapbox.com/",
-  "https://a.tiles.mapbox.com/",
-  "https://b.tiles.mapbox.com/",
-  "https://events.mapbox.com/",
+  "https://api.mapbox.com",
+  "https://*.tiles.mapbox.com",
+  "https://events.mapbox.com",
 ];
-
 const fontSrcUrls = [];
-
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
@@ -116,13 +110,14 @@ app.use(
       scriptSrc: ["'unsafe-inline'", "'self'", ...scriptSrcUrls],
       styleSrc: ["'self'", "'unsafe-inline'", ...styleSrcUrls],
       workerSrc: ["'self'", "blob:"],
+      childSrc: ["blob:"],
       objectSrc: [],
       imgSrc: [
         "'self'",
         "blob:",
         "data:",
-        "https://res.cloudinary.com/dk4afdlfz/",
-        "https://images.unsplash.com/",
+        "https://res.cloudinary.com/douqbebwk/", //SHOULD MATCH YOUR CLOUDINARY ACCOUNT!
+        "https://images.unsplash.com",
       ],
       fontSrc: ["'self'", ...fontSrcUrls],
     },
@@ -131,13 +126,12 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-
 passport.use(new LocalStrategy(User.authenticate()));
+
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 app.use((req, res, next) => {
-  res.locals.returnTo = req.session.returnTo;
   res.locals.currentUser = req.user;
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
@@ -158,7 +152,7 @@ app.all("*", (req, res, next) => {
 
 app.use((err, req, res, next) => {
   const { statusCode = 500 } = err;
-  if (!err.message) err.message = "Something went wrong";
+  if (!err.message) err.message = "Oh No, Something Went Wrong!";
   res.status(statusCode).render("error", { err });
 });
 
