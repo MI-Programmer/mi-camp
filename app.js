@@ -22,7 +22,7 @@ const reviewRoutes = require("./routes/reviews");
 
 const ExpressError = require("./utils/ExpressError");
 
-const dbUrl = process.env.DB_UR || "mongodb://localhost:27017/mi-camp";
+const dbUrl = process.env.DB_URL || "mongodb://localhost:27017/mi-camp";
 mongoose.connect(dbUrl, {
   useNewUrlParser: true,
   useCreateIndex: true,
