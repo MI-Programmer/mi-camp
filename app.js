@@ -78,6 +78,7 @@ const sessionConfig = {
 };
 app.use(session(sessionConfig));
 app.use(flash());
+app.use(helmet());
 
 const scriptSrcUrls = [
   "https://stackpath.bootstrapcdn.com/",
